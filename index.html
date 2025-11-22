@@ -1,0 +1,134 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Focus Flow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Custom scrollbar for sleek look */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(156, 163, 175, 0.5);
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(156, 163, 175, 0.8);
+      }
+      
+      /* Animation for Flip Clock */
+      .flip-clock-container {
+        perspective: 400px;
+      }
+      
+      .flip-card {
+        position: relative;
+        transform-style: preserve-3d;
+      }
+
+      /* Top half flips down (0 to -90) */
+      .flip-card.flipped .top-flip {
+        animation: flip-top 0.6s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
+        transform-origin: bottom;
+      }
+
+      /* Bottom half flips down (90 to 0) - starts after top flip finishes */
+      .flip-card.flipped .bottom-flip {
+        animation: flip-bottom 0.6s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
+        /* Delay is slightly less than half to ensure gapless join */
+        animation-delay: 0s; 
+        transform-origin: top;
+      }
+
+      @keyframes flip-top {
+        0% {
+          transform: rotateX(0deg);
+          z-index: 2;
+          filter: brightness(100%);
+        }
+        50% {
+           /* Reaches 90 degrees halfway through */
+           transform: rotateX(-90deg);
+           z-index: 2;
+           filter: brightness(50%);
+        }
+        100% {
+          transform: rotateX(-90deg);
+          z-index: 0;
+          filter: brightness(0%);
+        }
+      }
+
+      @keyframes flip-bottom {
+        0% {
+          transform: rotateX(90deg);
+          z-index: 0;
+          filter: brightness(0%);
+        }
+        50% {
+           transform: rotateX(90deg);
+           z-index: 1;
+           filter: brightness(50%);
+        }
+        100% {
+          transform: rotateX(0deg);
+          z-index: 1;
+          filter: brightness(100%);
+        }
+      }
+
+      /* Smooth Fade for Elements */
+      .animate-fade-in {
+        animation: fadeIn 0.5s ease-in-out forwards;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      .animate-slide-up {
+        animation: slideUp 0.5s ease-out forwards;
+      }
+
+      @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
+      .backface-hidden {
+        backface-visibility: hidden;
+      }
+      
+      /* Hide scrollbar for chrome/safari/opera */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

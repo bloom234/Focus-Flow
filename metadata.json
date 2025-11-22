@@ -1,0 +1,8 @@
+{
+  "name": "Focus Flow",
+  "description": "A productivity app combining a flip-clock timer, ambient noise generator, and session recording tools.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
