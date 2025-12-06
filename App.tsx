@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Settings, Maximize2, Minimize2, GripHorizontal, GripVertical } from 'lucide-react';
 import { Theme, THEME_STYLES, SplitDirection, RecordedSession } from './types';
@@ -8,7 +7,6 @@ import { NoisePlayer } from './components/NoisePlayer';
 import { SidePanel } from './components/SidePanel';
 
 const App: React.FC = () => {
-  // Changed default to 'horizontal' (Side-by-Side layout, Vertical Split Bar)
   const [currentTheme, setCurrentTheme] = useState<Theme>(Theme.LightAndDark);
   const [isSplitScreen, setIsSplitScreen] = useState(true);
   const [splitDirection, setSplitDirection] = useState<SplitDirection>('horizontal');
@@ -16,8 +14,8 @@ const App: React.FC = () => {
   const [showSettingsTrigger, setShowSettingsTrigger] = useState(false);
   const [sessions, setSessions] = useState<RecordedSession[]>([]);
   
-  // PiP State lifted to App to control layout
-  const [isPip, setIsPip] = useState(false);
+  // PiP State - Default to TRUE as requested
+  const [isPip, setIsPip] = useState(true);
 
   // Resizable Layout State
   const [splitRatio, setSplitRatio] = useState(50); // Percentage
@@ -29,6 +27,11 @@ const App: React.FC = () => {
   // Handle saving a new session from recorder
   const handleSaveSession = (session: RecordedSession) => {
     setSessions(prev => [session, ...prev]);
+  };
+
+  // Handle deleting a session
+  const handleDeleteSession = (id: string) => {
+    setSessions(prev => prev.filter(s => s.id !== id));
   };
 
   // Unified Drag Start Logic
@@ -66,7 +69,6 @@ const App: React.FC = () => {
 
     const handleTouchMove = (e: TouchEvent) => {
         if (isDragging) {
-            // Critical: prevent scrolling the page while dragging the handle
             e.preventDefault(); 
             handleMove(e.touches[0].clientX, e.touches[0].clientY);
         }
@@ -79,7 +81,6 @@ const App: React.FC = () => {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleEnd);
-      // Passive: false required to use preventDefault inside touch handler
       window.addEventListener('touchmove', handleTouchMove, { passive: false });
       window.addEventListener('touchend', handleEnd);
     }
@@ -94,38 +95,43 @@ const App: React.FC = () => {
 
   // Layout Logic
   const isHorizontal = splitDirection === 'horizontal';
+  const isCompact = isSplitScreen && !isPip;
   
   // Determine sizes based on state
   const getCameraStyle = (): React.CSSProperties => {
-    if (isPip) return { flexBasis: '0%', overflow: 'visible', zIndex: 50 }; // Allow PiP to float out
+    if (isPip) return { flexBasis: '0%', overflow: 'visible', zIndex: 50 };
     if (!isSplitScreen) return { flexBasis: '0%', overflow: 'hidden' };
     return { flexBasis: `${splitRatio}%`, overflow: 'hidden' };
   };
 
   const getTimerStyle = (): React.CSSProperties => {
-    // overflowY: 'auto' enables the "slide with a scrollbar" feature if content overflows
     if (isPip) return { flexBasis: '100%', overflowY: 'auto' };
     if (!isSplitScreen) return { flexBasis: '100%', overflowY: 'auto' };
     return { flexBasis: `${100 - splitRatio}%`, overflowY: 'auto' };
   };
 
-  // Conditional transition class: Disable transition when dragging for smoothness (responsive to finger/mouse)
-  const transitionClass = isDragging ? '' : 'transition-[flex-basis] duration-700 cubic-bezier(0.4, 0, 0.2, 1)';
+  const transitionClass = isDragging ? '' : 'transition-[flex-basis] duration-700 cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+  // "Minimized" visual effect when in split screen mode (not PiP)
+  // Added more padding (p-2) in split mode to create visible separation
+  const contentScaleClass = isCompact
+    ? 'rounded-3xl shadow-2xl ring-1 ring-black/5 m-2' // Margin added for gap
+    : 'transform-none rounded-none m-0';
 
   return (
     <div className={`h-screen w-screen overflow-hidden flex flex-col ${colors.bg} transition-colors duration-500`}>
       
-      {/* Top Right Hover Trigger for Settings */}
+      {/* Top Right Hover Trigger for Settings - More Visible/Interactable */}
       <div 
-        className="fixed top-0 right-0 w-32 h-32 z-40 flex justify-end items-start p-6 pointer-events-none"
+        className="fixed top-0 right-0 w-24 h-24 z-[60] flex justify-end items-start p-4"
         onMouseEnter={() => setShowSettingsTrigger(true)}
         onMouseLeave={() => setShowSettingsTrigger(false)}
       >
         <button
           onClick={() => setIsSettingsOpen(true)}
-          className={`p-3 rounded-full bg-white/10 backdrop-blur-md shadow-2xl transition-all duration-500 ease-out pointer-events-auto transform ${
-            showSettingsTrigger || isSettingsOpen ? 'opacity-100 translate-y-0 rotate-0 scale-100' : 'opacity-0 -translate-y-8 rotate-90 scale-75'
-          } ${colors.text} hover:scale-110 hover:bg-white/20`}
+          className={`p-3 rounded-full bg-white/20 backdrop-blur-md shadow-2xl transition-all duration-500 ease-out transform ${
+            showSettingsTrigger || isSettingsOpen ? 'opacity-100 translate-y-0 rotate-0 scale-100' : 'opacity-70 translate-y-0 rotate-0 scale-90 md:opacity-0 md:-translate-y-8 md:rotate-90 md:scale-75'
+          } ${colors.text} hover:scale-110 hover:bg-white/30 hover:opacity-100`}
           title="Open Settings"
         >
           <Settings size={24} />
@@ -135,46 +141,54 @@ const App: React.FC = () => {
       {/* Main Content Area */}
       <main 
         ref={containerRef}
-        className={`flex-1 flex relative overflow-hidden ${isHorizontal ? 'flex-row' : 'flex-col'}`}
+        className={`flex-1 flex relative overflow-hidden ${isHorizontal ? 'flex-row' : 'flex-col'} ${isCompact ? 'p-2 gap-2' : ''}`}
       >
         
         {/* Camera Section (First) */}
         <div 
           style={getCameraStyle()}
-          className={`relative z-20 ${transitionClass} ${isPip ? '' : colors.border} ${!isPip && isSplitScreen ? (isHorizontal ? 'border-r' : 'border-b') : ''}`}
+          className={`relative z-50 ${transitionClass} flex items-center justify-center`}
         >
-          <CameraRecorder 
-            colors={colors} 
-            isHidden={!isSplitScreen && !isPip} 
-            onSaveSession={handleSaveSession}
-            isPip={isPip}
-            onTogglePip={() => setIsPip(!isPip)}
-          />
+          {/* Wrapper must allow overflow when PiP so fixed child isn't clipped by 0-size parent */}
+          <div className={`w-full h-full ${isPip ? 'overflow-visible' : 'overflow-hidden'} transition-all duration-700 cubic-bezier(0.34, 1.56, 0.64, 1) ${contentScaleClass}`}>
+            <CameraRecorder 
+              colors={colors} 
+              isHidden={!isSplitScreen && !isPip} 
+              onSaveSession={handleSaveSession}
+              isPip={isPip}
+              onTogglePip={() => setIsPip(!isPip)}
+              isCompact={isCompact}
+            />
+          </div>
         </div>
 
-        {/* Resizer Handle */}
-        {isSplitScreen && !isPip && (
+        {/* Resizer Handle (The "Seam") */}
+        {isCompact && (
           <div
             onMouseDown={(e) => { e.preventDefault(); handleDragStart(); }}
             onTouchStart={handleDragStart}
-            className={`z-30 flex items-center justify-center transition-colors hover:bg-blue-500/50 ${colors.border} ${
+            className={`z-30 flex items-center justify-center transition-all duration-300 ${
               isHorizontal 
-                ? 'w-4 cursor-col-resize -ml-2 border-l border-r bg-transparent hover:w-5' 
-                : 'h-4 cursor-row-resize -mt-2 border-t border-b bg-transparent hover:h-5'
+                ? 'w-6 cursor-col-resize -ml-3 h-full' 
+                : 'h-6 cursor-row-resize -mt-3 w-full'
             }`}
             style={{ 
                 position: 'absolute', 
                 [isHorizontal ? 'left' : 'top']: `${splitRatio}%`, 
                 [isHorizontal ? 'top' : 'left']: 0,
                 [isHorizontal ? 'bottom' : 'right']: 0,
-                [isHorizontal ? 'width' : 'height']: '16px',
                 transform: isHorizontal ? 'translateX(-50%)' : 'translateY(-50%)',
-                touchAction: 'none' // Important for browser to defer touch handling to JS
+                touchAction: 'none' 
             }}
           >
-             {/* Grip Icon */}
-             <div className={`opacity-0 hover:opacity-100 transition-opacity ${colors.text}`}>
-                 {isHorizontal ? <GripVertical size={16} /> : <GripHorizontal size={16} />}
+             {/* Visual Handle Pill */}
+             <div className={`
+                transition-all duration-300 rounded-full shadow-lg flex items-center justify-center backdrop-blur-sm
+                ${isHorizontal ? 'w-1.5 h-16 hover:h-24' : 'h-1.5 w-16 hover:w-24'}
+                ${colors.accent}
+             `}>
+                 {/* Inner dot for detail */}
+                 <div className="w-0.5 h-0.5 rounded-full bg-white/50"></div>
              </div>
           </div>
         )}
@@ -182,22 +196,27 @@ const App: React.FC = () => {
         {/* Timer Section (Second) */}
         <div 
             style={getTimerStyle()}
-            className={`relative custom-scrollbar ${transitionClass}`}
+            className={`relative ${transitionClass} flex items-center justify-center`}
         >
-          <FlipClock colors={colors} />
-          
-          {/* Slider/Layout Toggle Handle (Visible when NOT in settings and NOT PiP) */}
-          {!isPip && (
-            <div className="absolute bottom-6 right-6 z-10 hidden md:block animate-fade-in">
-                <button
-                onClick={() => setIsSplitScreen(!isSplitScreen)}
-                className={`p-3 rounded-full ${colors.cardBg} ${colors.text} shadow-lg hover:scale-110 transition border ${colors.border} opacity-60 hover:opacity-100`}
-                title={isSplitScreen ? "Maximize Timer" : "Show Split Screen"}
-                >
-                {isSplitScreen ? <Maximize2 size={20} /> : <Minimize2 size={20} />}
-                </button>
+          <div className={`w-full h-full flex overflow-hidden transition-all duration-700 cubic-bezier(0.34, 1.56, 0.64, 1) ${colors.secondaryBg} ${contentScaleClass}`}>
+            
+            <div className="w-full h-full overflow-y-auto custom-scrollbar relative">
+              <FlipClock colors={colors} isCompact={isCompact} />
             </div>
-          )}
+
+            {/* Slider/Layout Toggle Handle (Visible when NOT in settings and NOT PiP) - Always visible now */}
+            {!isPip && (
+              <div className="absolute bottom-6 right-6 z-10 animate-fade-in">
+                  <button
+                  onClick={() => setIsSplitScreen(!isSplitScreen)}
+                  className={`p-3 rounded-full ${colors.cardBg} ${colors.text} shadow-lg hover:scale-110 transition border ${colors.border} opacity-60 hover:opacity-100`}
+                  title={isSplitScreen ? "Maximize Timer" : "Show Split Screen"}
+                  >
+                  {isSplitScreen ? <Maximize2 size={20} /> : <Minimize2 size={20} />}
+                  </button>
+              </div>
+            )}
+          </div>
         </div>
 
       </main>
@@ -217,6 +236,7 @@ const App: React.FC = () => {
         splitDirection={splitDirection}
         onDirectionChange={setSplitDirection}
         sessions={sessions}
+        onDeleteSession={handleDeleteSession}
       />
 
     </div>
